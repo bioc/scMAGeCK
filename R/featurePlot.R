@@ -1,4 +1,4 @@
-featurePlot <- function(RDS, TYPE = plot.type, BARCODE = NULL, sgRNA = NULL, GENE = NULL, CONTROL = NULL, 
+featurePlot <- function(RDS, TYPE = plot.type, BARCODE = NULL, sgRNA = NULL, GENE = NULL, CONTROL = NULL, GROUP2=NULL, SLOT='data', 
     palette = NULL, label.size = 3, axis.size = 12, title.size = 15, legend.text = 10, fill = "#56B4E9")  {
   
   if (TYPE == "Dis") {
@@ -68,18 +68,30 @@ featurePlot <- function(RDS, TYPE = plot.type, BARCODE = NULL, sgRNA = NULL, GEN
         stop("sgRNA is missing")
       }
       
-      target_gene_list = strsplit(GENE, ",")[[1]]
-      target_gene_list = trimws(target_gene_list)
+     if (is.vector(GENE)) {
+       target_gene_list=GENE
+     }else{
+       target_gene_list = strsplit(GENE, ",")[[1]]
+       target_gene_list = trimws(target_gene_list)
+     }
       mdata <- RDS@meta.data
+
+      if (sum(colnames(mdata)=='gene') == 0) {
+	  stop("Please assign single cells with gene identity in metadata first.")
+      }
       
       if (length(target_gene_list) == 1) {
-        data <- FetchData(RDS, GENE)  #the values indicate log(TPM)
+        data <- FetchData(RDS, GENE, slot = SLOT)  #the values indicate log(TPM)
         colnames(data)[1] <- paste("genes")
       } else {
-        data <- FetchData(RDS, target_gene_list[1])
+        data <- FetchData(RDS, target_gene_list[1], slot = SLOT)
         for (i in target_gene_list[2:length(target_gene_list)]) {
-          data_1 <- FetchData(RDS, i)
-          data <- cbind(data, data_1)
+          if (i %in% rownames(RDS) ) {
+            data_1 <- FetchData(RDS, i, slot = SLOT)
+            data <- cbind(data, data_1)
+          }else{
+            message(paste('Warning:',i,'is missing in expression assays. Skip this gene.'))
+          }
         }
         data$genes <- rowMeans(data)
       }
@@ -104,8 +116,13 @@ featurePlot <- function(RDS, TYPE = plot.type, BARCODE = NULL, sgRNA = NULL, GEN
         rownames(cell_ko) <- cell_ko$Row.names
       }
       cell_ko$label <- paste(sgRNA, " gene_KO")
-      other <- subset(data, !rownames(data) %in% gene.cell)
-      other$label <- paste("other")
+      if( is.null(GROUP2) ) {
+        other <- subset(data, !rownames(data) %in% gene.cell)
+        other$label <- paste("other")
+      } else {
+        other <- subset(data, rownames(data) %in% rownames(subset(mdata, gene == GROUP2)))
+        other$label <- paste(GROUP2)
+      }
       gene <- rbind(cell_ko, other)
       
       
@@ -114,7 +131,8 @@ featurePlot <- function(RDS, TYPE = plot.type, BARCODE = NULL, sgRNA = NULL, GEN
       eq <- paste0("p_value = ", signif(wil$p.value, digits = 3))
       
       #the base of violin plot
-      p <- ggplot(gene, aes(x = label, y = genes, fill = label)) + geom_violin() + geom_violin(trim=FALSE) +
+      p <- ggplot(gene, aes(x = label, y = genes, fill = label)) + geom_violin() + 
+        # geom_violin(trim=FALSE) +  ## trim the figure
         stat_summary(fun.y=mean, geom="point", size=1, color = "black") + labs(y = "Gene expression_lg(TPM)", subtitle = eq)
         
       if (!is.null(palette)) {
@@ -145,8 +163,8 @@ featurePlot <- function(RDS, TYPE = plot.type, BARCODE = NULL, sgRNA = NULL, GEN
         target_sgrna_list = strsplit(sgRNA, ",")[[1]]
         target_sgrna_list = trimws(target_sgrna_list)
         target_sgrna_list <-  paste("sgrna_", target_sgrna_list, sep = "")
-        grna <- FetchData(RDS, target_sgrna_list)
-        }
+        grna <- FetchData(RDS, target_sgrna_list,slot=SLOT)
+      }
         grna$grna <- rowSums(grna)
         grna <- subset(grna, grna > 0)
         grna <- grna["grna"]

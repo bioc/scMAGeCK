@@ -9,17 +9,18 @@ echo "Use RRA to test the association of gene knockout with certain marker expre
 }
 \usage{
 scmageck_rra(BARCODE, RDS, GENE, RRAPATH = NULL, LABEL = NULL, NEGCTRL = NULL, 
-SIGNATURE = NULL, KEEPTMP = FALSE, PATHWAY = FALSE, SAVEPATH = "./")
+SIGNATURE = NULL, KEEPTMP = FALSE, PATHWAY = FALSE, SAVEPATH = "./",ASSIGNMETHOD = "largest",SLOT='scale.data')
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{BARCODE}{
 A txt file to include cell identity information, generated from the cell 
-identity collection step.
+identity collection step; or a corresponding data.frame.
 }
   \item{RDS}{
-A Seurat object or local RDS file path that contains the scRNA-seq dataset. 
-Note that the dataset has to be normalized and scaled.
+A Seurat object or local RDS file path that contains the scRNA-seq dataset; 
+or a path to RDS file.
+Note that the dataset has to be normalized and scaled. 
 }
   \item{GENE}{
 Genes whose expressions are to be tested. Multiple genes can be provided, 
@@ -27,6 +28,7 @@ separated by ",". For example, "MKI67,TP53"
 }
   \item{RRAPATH}{
 The path to the RRA program, if RRA cannot be found in the PATH environment variable.
+Depreciated in 1.5.1.
 }
   \item{LABEL}{
 The label of the output file.
@@ -46,6 +48,10 @@ expression of these genes will be used for testing.
 The save path of result. Default save path is the current working directory. 
 If you don't need save the result, set SAVEPATH as NULL.
 }
+  \item{ASSIGNMETHOD}{
+Method used to assign the sgRNA identity to each cell. Can be either unique or largest. 
+See assign_cell_identity for more details.
+}
   \item{SIGNATURE}{
 A GMT text file, the format must be as follows:(1)Column 1: name of gene set;
 (2)Colum 2: Empty, or the information about gene set e.g. the source of the gene set;
@@ -54,6 +60,9 @@ Note that if you don't set the parameter "SAVEPATH", this parameter would create
 folder called "GENE_SET"" in the current working directory to store the results from 
 applying RRA program to do gene set analysis.
 Refercence:http://software.broadinstitute.org/cancer/software/gsea/wiki/index.php/Data_formats
+}
+ \item{SLOT}{
+Use the slot in Seurat object for plot. May choose 'data', 'scale.data' or 'count'. See GetAssayData funciton in Seurat.
 }
 }
 \examples{
