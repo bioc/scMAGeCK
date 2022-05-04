@@ -10,7 +10,7 @@ identify how many sgRNAs entered the cells, visualize the counts of sgRNAs distr
 gene regulation.
 }
 \usage{
-featurePlot(RDS, TYPE = plot.type, BARCODE = NULL, sgRNA = NULL, GENE = NULL, CONTROL = NULL, palette = NULL, label.size = 3, axis.size = 12, title.size = 15, legend.text = 10, fill = "#56B4E9")
+featurePlot(RDS, TYPE = plot.type, BARCODE = NULL, sgRNA = NULL, GENE = NULL, CONTROL = NULL, GROUP2=NULL,SLOT='data',palette = NULL, label.size = 3, axis.size = 12, title.size = 15, legend.text = 10, fill = "#56B4E9")
 
 plot.type
 # c("Dis", "Vln", "Den")
@@ -32,12 +32,21 @@ Generate whole sgRNAs distribution when sgRNA = NULL, add sgRNAs to see the spec
 sgRNA distribution. Mutiple sgRNAs can be provided, separated by ",". For example, "APC,TP53".
 }
  \item{GENE}{
-Genes whose expressions are to be compared under different cell coditions. Mutiple genes can be provided, separated by ",". For example, "APC,TP53". 
+Genes whose expressions are to be compared under different cell coditions. 
+Mutiple genes can be provided, as a vector or as a string separated by ",". 
+For example, "APC,TP53". 
 when provide mutiple genes, it would show the average gene expression. 
 }
  \item{CONTROL}{
 Set up the sepecifc clusters to compare the gene expression. it would compare gene
 expression across the dataset when CONTROL = NULL.
+}
+ \item{GROUP2}{
+Set up the gene name as the control group. it would compare gene
+expression across the dataset when GROUP2= NULL.
+}
+ \item{SLOT}{
+Use the slot in Seurat object for plot. May choose 'data', 'scale.data' or 'count'. See GetAssayData funciton in Seurat.
 }
   \item{palette}{
 The color palette to change the color of VlnPlot.

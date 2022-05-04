@@ -1,5 +1,8 @@
 scmageck_rra <- function(BARCODE, RDS, GENE, RRAPATH = NULL, LABEL = NULL, NEGCTRL = NULL, SIGNATURE = NULL,
-    KEEPTMP = FALSE, PATHWAY = FALSE, SAVEPATH = "./") {
+    KEEPTMP = FALSE, PATHWAY = FALSE, SAVEPATH = "./",ASSIGNMETHOD='largest', SLOT = 'scale.data') {
+  message('Testing Rcpp:')
+  #z=rcpp_hello_world()
+  #message(str(z))
   if (is.null(RRAPATH)) {
     RRAPATH = system.file("bin", "RRA", package = "scMAGeCK")
   }
@@ -7,7 +10,7 @@ scmageck_rra <- function(BARCODE, RDS, GENE, RRAPATH = NULL, LABEL = NULL, NEGCT
   if (!file.exists(RRAPATH)) {
     if (system('RRA', ignore.stdout = TRUE, ignore.stderr = TRUE)!=0) {
       message("RRA does not exist! Please check RRA executable file path")
-      return(NULL)
+      #return(NULL)
     } else {
       RRAPATH=NULL # if RRA already exists
     }
@@ -19,7 +22,12 @@ scmageck_rra <- function(BARCODE, RDS, GENE, RRAPATH = NULL, LABEL = NULL, NEGCT
   }
   
   # read cell assignment and libray file ####
-  bc_dox = read.table(BARCODE, header = TRUE, as.is = TRUE)
+  bc_dox = NULL
+  if (is.character(BARCODE)) {
+    bc_dox = read.table(BARCODE, header = TRUE, as.is = TRUE)
+  } else {
+    bc_dox = BARCODE
+  }
   # check barcode file
   if (sum(colnames(bc_dox) %in% c("cell", "barcode", "gene")) != 3) {
     stop("cell, barcode, or gene column names not found in barcode file.")
@@ -48,11 +56,22 @@ scmageck_rra <- function(BARCODE, RDS, GENE, RRAPATH = NULL, LABEL = NULL, NEGCT
   ncnt = table(table(bc_dox$cell))
   
   # only leave cells with unique guides ####
-  
-  dupsq = bc_dox[duplicated(bc_dox$cell), 1]
-  bc_dox_uq = bc_dox[!bc_dox[, 1] %in% dupsq, ]
-  rownames(bc_dox_uq) = bc_dox_uq[, 1]
-  
+   if (ASSIGNMETHOD == "unique") {
+	  
+    message("Only assign unique cells") 
+    dupsq = bc_dox[duplicated(bc_dox$cell), 1]
+    bc_dox_uq = bc_dox[!bc_dox[, 1] %in% dupsq, ]
+    rownames(bc_dox_uq) = bc_dox_uq[, 1]
+  }else {
+    if (ASSIGNMETHOD == "largest") {
+         bc_dox=bc_dox[order(bc_dox[,'umi_count'],decreasing = T),] 
+         bc_dox_uq=bc_dox[!duplicated(bc_dox$cell),]
+         rownames(bc_dox_uq) = bc_dox_uq[, 1]
+    }else{
+      stop('Assignment method should be either unique or largest')
+    }
+  }
+    
   message(paste("Total barcode records:", nrow(bc_dox)))
   message(paste("Unique barcode records:", nrow(bc_dox_uq)))
   
@@ -78,11 +97,8 @@ scmageck_rra <- function(BARCODE, RDS, GENE, RRAPATH = NULL, LABEL = NULL, NEGCT
     }
   }
   # run RRA ####
-  if ("scale.data" %in% names(attributes(targetobj))) {
-      scalef = targetobj@scale.data # for version 2
-  } else {
-      scalef = GetAssayData(object = targetobj, slot = "scale.data")
-  }
+  #scalef = GetAssayData(object = targetobj, slot = "scale.data")
+  scalef=getscaledata(targetobj,slot=SLOT)
   
   # get the gene set from GMT file ####
   if (!is.null(SIGNATURE)) {
